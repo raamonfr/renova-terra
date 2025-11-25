@@ -4,83 +4,121 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { TreePine, Calendar, MapPin, List, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  TreePine,
+  Calendar,
+  MapPin,
+  List,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  CheckCircle,
+  XCircle,
+} from "lucide-react"
 import Link from "next/link"
 
+interface Event {
+  id: string
+  title: string
+  event_date: string
+  location: string
+  description?: string
+  committees: {
+    name: string
+  }
+}
+
 export default function EventosPage() {
-  const [events, setEvents] = useState<any[]>([])
+  const [events, setEvents] = useState<Event[]>([])
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
-  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 0, 1))
+  const [currentMonth, setCurrentMonth] = useState(new Date())
   const [userAttendance, setUserAttendance] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState<any>(null)
+
+  // Modal states
+  const [showEventModal, setShowEventModal] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [feedbackMessage, setFeedbackMessage] = useState<{ type: "success" | "error"; message: string } | null>(null)
 
   useEffect(() => {
-    fetchEvents()
-    fetchUserAttendance()
+    fetchData()
   }, [])
 
-  const fetchEvents = async () => {
+  const fetchData = async () => {
     const supabase = createClient()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    setCurrentUser(user)
+
     const { data, error } = await supabase
       .from("events")
-      .select(`
-        *,
-        committees (name)
-      `)
+      .select(`*, committees (name)`)
       .gte("event_date", new Date().toISOString())
       .order("event_date", { ascending: true })
 
     if (error) console.error("Error fetching events:", error)
     else setEvents(data || [])
+
+    if (user) {
+      const { data: attendanceData } = await supabase.from("event_attendance").select("event_id").eq("user_id", user.id)
+
+      if (attendanceData) {
+        setUserAttendance(new Set(attendanceData.map((a) => a.event_id)))
+      }
+    }
+
     setLoading(false)
   }
 
-  const fetchUserAttendance = async () => {
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return
+  const handleJoinEvent = async () => {
+    if (!currentUser || !selectedEvent) return
 
-    const { data, error } = await supabase.from("event_attendance").select("event_id").eq("user_id", user.id)
+    try {
+      const supabase = createClient()
 
-    if (error) console.error("Error fetching attendance:", error)
-    else setUserAttendance(new Set(data?.map((a) => a.event_id) || []))
-  }
+      const { error } = await supabase
+        .from("event_attendance")
+        .insert([{ event_id: selectedEvent.id, user_id: currentUser.id }])
 
-  const handleConfirmAttendance = async (eventId: string) => {
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return
+      if (error) throw error
 
-    if (userAttendance.has(eventId)) {
-      // Remove attendance
-      const { error } = await supabase.from("event_attendance").delete().eq("event_id", eventId).eq("user_id", user.id)
-
-      if (error) console.error("Error removing attendance:", error)
-      else {
-        userAttendance.delete(eventId)
-        setUserAttendance(new Set(userAttendance))
-      }
-    } else {
-      // Add attendance
-      const { error } = await supabase.from("event_attendance").insert([{ event_id: eventId, user_id: user.id }])
-
-      if (error && error.code !== "23505") {
-        // 23505 is duplicate key error
-        console.error("Error confirming attendance:", error)
-      } else {
-        userAttendance.add(eventId)
-        setUserAttendance(new Set(userAttendance))
-      }
+      setShowEventModal(false)
+      setSelectedEvent(null)
+      setFeedbackMessage({
+        type: "success",
+        message: `Presença confirmada no evento "${selectedEvent.title}"!`,
+      })
+      setTimeout(() => setFeedbackMessage(null), 3000)
+      fetchData()
+    } catch (error) {
+      console.error("[v0] Erro ao confirmar presença:", error)
+      setFeedbackMessage({ type: "error", message: "Erro ao confirmar presença. Tente novamente." })
+      setTimeout(() => setFeedbackMessage(null), 3000)
     }
   }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })
+  }
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
   }
 
   const getDaysInMonth = (date: Date) => {
@@ -111,8 +149,31 @@ export default function EventosPage() {
   const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentMonth)
   const monthName = currentMonth.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <TreePine className="h-12 w-12 text-primary mx-auto mb-4 animate-bounce" />
+          <p className="text-foreground">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Feedback Toast */}
+      {feedbackMessage && (
+        <div
+          className={`fixed top-4 right-4 z-[100] flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${
+            feedbackMessage.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+          }`}
+        >
+          {feedbackMessage.type === "success" ? <CheckCircle className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+          <span>{feedbackMessage.message}</span>
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -150,7 +211,7 @@ export default function EventosPage() {
             <Button
               variant={viewMode === "list" ? "default" : "outline"}
               onClick={() => setViewMode("list")}
-              className={viewMode === "list" ? "bg-primary" : "border-border"}
+              className={viewMode === "list" ? "bg-primary" : "border-border bg-transparent"}
             >
               <List className="h-4 w-4 mr-2" />
               Lista
@@ -158,7 +219,7 @@ export default function EventosPage() {
             <Button
               variant={viewMode === "calendar" ? "default" : "outline"}
               onClick={() => setViewMode("calendar")}
-              className={viewMode === "calendar" ? "bg-primary" : "border-border"}
+              className={viewMode === "calendar" ? "bg-primary" : "border-border bg-transparent"}
             >
               <CalendarDays className="h-4 w-4 mr-2" />
               Calendário
@@ -185,6 +246,10 @@ export default function EventosPage() {
                       <span>{formatDate(event.event_date)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>{formatTime(event.event_date)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="h-4 w-4" />
                       <span>{event.location || "Local a confirmar"}</span>
                     </div>
@@ -196,23 +261,29 @@ export default function EventosPage() {
 
                   {event.description && <p className="text-sm text-muted-foreground mb-4">{event.description}</p>}
 
-                  <Button
-                    onClick={() => handleConfirmAttendance(event.id)}
-                    className={
-                      userAttendance.has(event.id)
-                        ? "w-full bg-green-600 text-white hover:bg-green-700"
-                        : "w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                    }
-                  >
-                    {userAttendance.has(event.id) ? "✓ Presença Confirmada" : "Confirmar Presença"}
-                  </Button>
+                  {userAttendance.has(event.id) ? (
+                    <Button className="w-full bg-green-600 text-white hover:bg-green-700" disabled>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Presença Confirmada
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        setSelectedEvent(event)
+                        setShowEventModal(true)
+                      }}
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      Participar do Evento
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
 
-        {/* Calendar View */}
+        {/* Calendar View - Mostra nome do evento, comitê e horário */}
         {viewMode === "calendar" && (
           <Card className="border-border bg-card">
             <CardContent className="p-6">
@@ -259,7 +330,7 @@ export default function EventosPage() {
                   return (
                     <div
                       key={day}
-                      className={`aspect-square border border-border rounded-lg p-2 ${
+                      className={`min-h-[80px] border border-border rounded-lg p-2 ${
                         hasEvents ? "bg-primary/5 hover:bg-primary/10 cursor-pointer" : "bg-background"
                       } transition-colors`}
                     >
@@ -268,8 +339,19 @@ export default function EventosPage() {
                           {day}
                         </span>
                         {hasEvents && (
-                          <div className="flex-1 flex items-center justify-center">
-                            <div className="h-2 w-2 rounded-full bg-primary" />
+                          <div className="mt-1 space-y-1">
+                            {dayEvents.slice(0, 2).map((event) => (
+                              <div
+                                key={event.id}
+                                className="text-xs bg-primary/20 text-primary px-1 py-0.5 rounded truncate"
+                                title={`${event.title} - ${event.committees?.name} - ${formatTime(event.event_date)}`}
+                              >
+                                {formatTime(event.event_date)} {event.title}
+                              </div>
+                            ))}
+                            {dayEvents.length > 2 && (
+                              <span className="text-xs text-muted-foreground">+{dayEvents.length - 2} mais</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -305,21 +387,35 @@ export default function EventosPage() {
                             <div className="flex-1">
                               <h4 className="font-semibold text-card-foreground mb-1">{event.title}</h4>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <MapPin className="h-4 w-4" />
+                                <TreePine className="h-3 w-3" />
+                                <span>{event.committees?.name}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                <span>{formatTime(event.event_date)}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <MapPin className="h-3 w-3" />
                                 <span>{event.location || "Local a confirmar"}</span>
                               </div>
                             </div>
-                            <Button
-                              size="sm"
-                              onClick={() => handleConfirmAttendance(event.id)}
-                              className={
-                                userAttendance.has(event.id)
-                                  ? "bg-green-600 hover:bg-green-700"
-                                  : "bg-primary hover:bg-primary/90"
-                              }
-                            >
-                              {userAttendance.has(event.id) ? "✓ Confirmado" : "Confirmar"}
-                            </Button>
+                            {userAttendance.has(event.id) ? (
+                              <Button size="sm" className="bg-green-600 hover:bg-green-700" disabled>
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Confirmado
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedEvent(event)
+                                  setShowEventModal(true)
+                                }}
+                                className="bg-primary hover:bg-primary/90"
+                              >
+                                Participar
+                              </Button>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -330,6 +426,52 @@ export default function EventosPage() {
           </Card>
         )}
       </div>
+
+      <Dialog open={showEventModal} onOpenChange={setShowEventModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Participar do Evento</DialogTitle>
+            <DialogDescription>
+              Você deseja confirmar sua presença no evento "{selectedEvent?.title}"?
+            </DialogDescription>
+          </DialogHeader>
+          {selectedEvent && (
+            <div className="space-y-2 text-sm text-muted-foreground py-2">
+              <div className="flex items-center gap-2">
+                <TreePine className="h-4 w-4" />
+                <span>{selectedEvent.committees?.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span>{formatDate(selectedEvent.event_date)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <span>{formatTime(selectedEvent.event_date)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                <span>{selectedEvent.location || "Local a confirmar"}</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowEventModal(false)
+                setSelectedEvent(null)
+              }}
+              className="border-border bg-transparent"
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleJoinEvent} className="bg-primary text-primary-foreground">
+              Confirmar Presença
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

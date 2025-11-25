@@ -22,21 +22,23 @@ export default function HomePage() {
             <Link href="/mapa" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Mapa de Comitês
             </Link>
-            <Link href="/auth/login">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-primary text-primary hover:bg-primary/10 bg-transparent"
-              >
-                Login
-              </Button>
-            </Link>
-            <Link href="/auth/signup">
-              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                Cadastre-se
-              </Button>
-            </Link>
           </nav>
+          <div className="flex gap-6">
+              <Link href="/auth/login">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-primary text-primary hover:bg-primary/10 bg-transparent"
+                >
+                  Login
+                </Button>
+              </Link>
+              <Link href="/auth/signup">
+                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  Cadastre-se
+                </Button>
+              </Link>
+            </div>
         </div>
       </header>
 
