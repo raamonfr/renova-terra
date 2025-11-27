@@ -53,6 +53,14 @@ interface Member {
   email: string
 }
 
+interface UserData {
+  id: string
+  email: string
+  user_metadata: {
+    full_name: string
+  }
+}
+
 export default function ComitePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
