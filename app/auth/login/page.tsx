@@ -30,7 +30,12 @@ export default function LoginPage() {
         email,
         password,
       })
-      if (error) throw error
+      if (error) {
+        if (error.message.includes("Email not confirmed")) {
+          throw new Error("Email não confirmado. Verifique seu email para confirmar sua conta.")
+        }
+        throw error
+      }
       router.push("/dashboard")
       router.refresh()
     } catch (error: unknown) {

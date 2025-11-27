@@ -100,6 +100,7 @@ export default function SignupPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
+                    <p className="text-xs text-muted-foreground mt-1">A senha deve ter pelo menos 6 caracteres.</p>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="repeatPassword">Confirme a Senha</Label>

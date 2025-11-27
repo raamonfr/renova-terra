@@ -21,7 +21,8 @@ export default function SignupSuccess() {
                 <div>
                   <h2 className="text-2xl font-bold text-foreground mb-2">Conta Criada com Sucesso!</h2>
                   <p className="text-muted-foreground mb-6">
-                    Verifique seu email para confirmar sua conta. Depois faça login para começar.
+                    Verifique seu email para confirmar sua conta. Um email de confirmação foi enviado para o seu
+                    endereço de email. Após confirmar, você poderá fazer login para começar.
                   </p>
                 </div>
                 <Link href="/auth/login" className="w-full">

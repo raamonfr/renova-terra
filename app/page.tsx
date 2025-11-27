@@ -188,7 +188,7 @@ export default function HomePage() {
                   </div>
 
                   <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-                    <Link href="/mapa">
+                    <Link href="/auth/login">
                       <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl">
                         Explorar Mapa Completo
                       </Button>
