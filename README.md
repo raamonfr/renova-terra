@@ -74,4 +74,4 @@ npm run dev
 
 O projeto possui uma documentação técnica detalhada incluindo diagramas de arquitetura, modelagem de banco de dados e decisões de infraestrutura.
 
-📄 **[Acesse o Design Técnico Completo (PDF)](./docs/design-tecnico-renovaterra.pdf)**
+📄 **[Acesse o Design Técnico Completo (PDF)](/app/docs/Sprint%204%20-%20Design%20Técnico.pdf)**
