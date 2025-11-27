@@ -68,3 +68,10 @@ npm run dev
 ```
 
 **6. Acesse no navegador O terminal vai mostrar o link de acesso: http://localhost:3000**
+
+
+## 📚 Documentação e Arquitetura
+
+O projeto possui uma documentação técnica detalhada incluindo diagramas de arquitetura, modelagem de banco de dados e decisões de infraestrutura.
+
+📄 **[Acesse o Design Técnico Completo (PDF)](./docs/design-tecnico-renovaterra.pdf)**
