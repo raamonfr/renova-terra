@@ -116,18 +116,20 @@ export default function ComitePage({ params }: { params: Promise<{ id: string }>
       setCurrentUser(user)
       setUser(user as unknown as UserData)
 
-      const { data: myMembership } = await supabase
-        .from("committee_members")
-        .select("id")
-        .eq("committee_id", id)
-        .eq("user_id", user.id)
-        .single()
+      if (user) {
+        const { data: myMembership } = await supabase
+          .from("committee_members")
+          .select("id")
+          .eq("committee_id", id)
+          .eq("user_id", user.id) // Agora o TS sabe que user não é nulo aqui
+          .single()
 
-      // Se encontrar registro, atualiza o estado para mudar o botão
-      if (myMembership) {
-        setMemberCommitteeIds(new Set([id]))
-      } else {
-        setMemberCommitteeIds(new Set())
+        // Se encontrar registro, atualiza o estado para mudar o botão
+        if (myMembership) {
+          setMemberCommitteeIds(new Set([id]))
+        } else {
+          setMemberCommitteeIds(new Set())
+        }
       }
 
       // Fetch committee
