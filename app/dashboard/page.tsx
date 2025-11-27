@@ -97,7 +97,7 @@ export default function DashboardPage() {
         return
       }
 
-      setUser(currentUser as UserData)
+      setUser(currentUser as unknown as UserData)
 
       const { data: createdCommittees } = await supabase.from("committees").select("*").eq("creator_id", currentUser.id)
 
