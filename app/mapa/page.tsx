@@ -187,7 +187,7 @@ export default function MapaPage() {
             <div className="md:hidden p-4 border-b border-border flex items-center justify-between bg-background/95 backdrop-blur sticky top-0 z-50">
               <span className="font-bold text-lg">Lista de Comitês</span>
               <Button variant="ghost" size="sm" onClick={() => setIsMobileListOpen(false)}>
-                <span className="mr-2">Fechar Mapa</span>
+                <span className="mr-2">Fechar Lista</span>
                 <ChevronDown className="h-6 w-6" />
               </Button>
             </div>
@@ -259,7 +259,6 @@ export default function MapaPage() {
                   }`}
                   onClick={() => {
                     setSelectedCommittee(committee)
-                    if (window.innerWidth < 768) setIsMobileListOpen(false)
                   }}
                 >
                   <CardContent className="p-4">
@@ -334,7 +333,7 @@ export default function MapaPage() {
 
       {/* Modal de Confirmação de Entrada */}
       <Dialog open={showJoinModal} onOpenChange={setShowJoinModal}>
-        <DialogContent>
+        <DialogContent className="z-100">
           <DialogHeader>
             <DialogTitle>Entrar no Comitê</DialogTitle>
             <DialogDescription>
