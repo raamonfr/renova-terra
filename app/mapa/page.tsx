@@ -319,7 +319,7 @@ export default function MapaPage() {
 
           {/* 4. BOTÃO FLUTUANTE (Mobile) */}
           {!isMobileListOpen && (
-            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 md:hidden z-[50]">
+            <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 md:hidden z-[50]">
               <Button 
                 onClick={() => setIsMobileListOpen(true)}
                 className="shadow-xl bg-background text-foreground border border-border hover:bg-muted rounded-full px-6 py-6 font-semibold"
