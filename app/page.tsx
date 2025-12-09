@@ -1,18 +1,28 @@
+"use client" // Adicione essa linha no topo se estiver usando Next.js App Router
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { TreePine, MapPin, Users, Award, Facebook, Instagram, Twitter, Mail } from "lucide-react"
+import { TreePine, MapPin, Users, Award, Facebook, Instagram, Twitter, Mail, Menu, X } from "lucide-react"
 import Link from "next/link"
 import { InteractiveMap } from "@/components/interactive-map"
 
 export default function HomePage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen)
+  }
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <TreePine className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-semibold text-foreground">RenovaTerra</span>
+            <img src="/imgs/logo-transparent.png" alt="Logo RenovaTerra" className="w-16" />
           </div>
+
+          {/* Menu Desktop (Escondido em Mobile) */}
           <nav className="hidden md:flex items-center gap-6">
             <a
               href="#como-funciona"
@@ -41,17 +51,63 @@ export default function HomePage() {
               </Button>
             </Link>
           </nav>
+
+          {/* Botão Menu Mobile (Visível apenas em Mobile) */}
+          <div className="md:hidden">
+            <button onClick={toggleMenu} className="text-foreground hover:text-primary focus:outline-none">
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
+
+        {/* Menu Mobile Dropdown */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-background border-t border-border absolute w-full left-0 top-full shadow-lg">
+            <nav className="flex flex-col p-4 space-y-4">
+              <a
+                href="#como-funciona"
+                className="text-sm font-medium text-foreground hover:text-primary transition-colors py-2 border-b border-border/50"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Como Funciona
+              </a>
+              <Link
+                href="/auth/login"
+                className="text-sm font-medium text-foreground hover:text-primary transition-colors py-2 border-b border-border/50"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Mapa de Comitês
+              </Link>
+              <div className="flex flex-col gap-3 pt-2">
+                <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-primary text-primary hover:bg-primary/10 bg-transparent"
+                  >
+                    Login
+                  </Button>
+                </Link>
+                <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>
+                  <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                    Cadastre-se
+                  </Button>
+                </Link>
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
+      {/* Restante do conteúdo da página (inauterado) */}
       <section className="relative min-h-[600px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
-            src="/community-planting-trees-together-in-urban-park--d.jpg"
+            src="/imgs/banner.jpg"
             alt="Comunidade plantando árvores"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/60" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/40 to-background/0" />
         </div>
 
         <div className="container mx-auto px-4 relative z-10">
