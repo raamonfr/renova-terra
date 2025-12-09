@@ -2,11 +2,10 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { createClient } from "@/lib/client" 
+import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-// Adicionei os imports necessários para o Modal e ícones
 import {
   Dialog,
   DialogContent,
@@ -15,11 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { TreePine, MapPin, Users, Search, CheckCircle, Plus } from "lucide-react"
-import Link from "next/link"
+import { MapPin, Users, Search, CheckCircle, Plus, List, ChevronDown } from "lucide-react"
 import { InteractiveMap } from "@/components/interactive-map"
+import { AppHeader } from "@/components/app-header"
 
-// Tipagem para evitar erros de TS
 interface Committee {
   id: string
   name: string
@@ -36,14 +34,18 @@ export default function MapaPage() {
   
   // Estados de UI e Controle
   const [searchTerm, setSearchTerm] = useState("")
-  // Agora selectedCommittee guarda o OBJETO inteiro, não só o ID, igual ao Dashboard
   const [selectedCommittee, setSelectedCommittee] = useState<Committee | null>(null)
   const [committeeToJoin, setCommitteeToJoin] = useState<Committee | null>(null)
   const [loading, setLoading] = useState(true)
   
-  // Modals e Forms
+  // Estado mobile
+  const [isMobileListOpen, setIsMobileListOpen] = useState(false)
+
+  // Estados dos Modais e Formulários
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showJoinModal, setShowJoinModal] = useState(false)
+  
+  // Inputs do formulário simplificado do mapa
   const [newCommitteeName, setNewCommitteeName] = useState("")
   const [newCommitteeNeighborhood, setNewCommitteeNeighborhood] = useState("")
 
@@ -51,16 +53,12 @@ export default function MapaPage() {
     loadData()
   }, [])
 
-  // --- CORREÇÃO 1: Função centralizada de carregamento (Igual ao Dashboard) ---
   const loadData = async () => {
     try {
       const supabase = createClient()
-      
-      // 1. Pegar usuário
       const { data: { user: currentUser } } = await supabase.auth.getUser()
       setUser(currentUser)
 
-      // 2. Pegar Comitês
       const { data, error } = await supabase
         .from("committees")
         .select(`
@@ -72,7 +70,6 @@ export default function MapaPage() {
       if (error) console.error("Error fetching committees:", error)
       else setCommittees(data || [])
 
-      // 3. Pegar Membrosias (A parte que faltava!)
       if (currentUser) {
         const { data: memberships } = await supabase
           .from("committee_members")
@@ -90,36 +87,55 @@ export default function MapaPage() {
     }
   }
 
+  // --- FUNÇÃO CORRIGIDA AQUI ---
   const handleCreateCommittee = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
 
     const supabase = createClient()
-    const { error } = await supabase.from("committees").insert([
-      {
-        name: newCommitteeName,
-        neighborhood: newCommitteeNeighborhood,
-        creator_id: user.id,
-        description: "Novo comitê da comunidade",
-      },
-    ])
 
-    if (error) console.error("Error creating committee:", error)
-    else {
+    try {
+      // 1. Cria o comitê e RETORNA os dados (incluindo o ID gerado)
+      const { data: newCommittee, error } = await supabase
+        .from("committees")
+        .insert([
+          {
+            name: newCommitteeName,
+            neighborhood: newCommitteeNeighborhood,
+            creator_id: user.id,
+            description: "Novo comitê da comunidade",
+          },
+        ])
+        .select() // Importante: pede para o banco devolver o item criado
+        .single() // Pega apenas um item
+
+      if (error) throw error
+
+      // 2. Adiciona o criador como membro automaticamente usando o ID do passo 1
+      const { error: memberError } = await supabase
+        .from("committee_members")
+        .insert([{ committee_id: newCommittee.id, user_id: user.id }])
+
+      if (memberError) throw memberError
+
+      // 3. Limpa o formulário e atualiza a tela
       setNewCommitteeName("")
       setNewCommitteeNeighborhood("")
       setShowCreateForm(false)
-      loadData() // Recarrega para aparecer na lista
+      
+      // Recarrega os dados para mostrar o novo comitê na lista e o botão verde
+      loadData() 
+
+    } catch (error) {
+      console.error("Erro ao criar comitê:", error)
     }
   }
 
-  // --- CORREÇÃO 2: Função de entrar no comitê (Via Modal) ---
   const handleJoinCommittee = async () => {
     if (!user || !committeeToJoin) return
 
     try {
       const supabase = createClient()
-
       const { error } = await supabase.from("committee_members").insert([
         {
           committee_id: committeeToJoin.id,
@@ -127,19 +143,18 @@ export default function MapaPage() {
         },
       ])
 
-      if (error && error.code !== "23505") { // Ignora erro de duplicidade
+      if (error && error.code !== "23505") {
         console.error("Error joining committee:", error)
       } else {
         setShowJoinModal(false)
         setCommitteeToJoin(null)
-        loadData() // Atualiza a tela para o botão ficar verde
+        loadData()
       }
     } catch (error) {
       console.error("Erro ao entrar:", error)
     }
   }
 
-  // Função auxiliar para abrir o modal
   const openJoinModal = (committee: Committee) => {
     setCommitteeToJoin(committee)
     setShowJoinModal(true)
@@ -152,33 +167,33 @@ export default function MapaPage() {
   )
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
-      {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur shrink-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <TreePine className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-semibold text-foreground">RenovaTerra</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/dashboard" className="text-sm font-medium text-foreground hover:text-primary">
-              Dashboard
-            </Link>
-            <Link href="/mapa" className="text-sm font-medium text-primary">
-              Mapa
-            </Link>
-            <Link href="/eventos" className="text-sm font-medium text-foreground hover:text-primary">
-              Eventos
-            </Link>
-          </nav>
-        </div>
-      </header>
+    <div className="h-screen flex flex-col overflow-hidden bg-background">
+      
+      {/* 1. Header Reutilizável */}
+      <AppHeader />
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <aside className="w-full md:w-96 border-r border-border bg-background flex flex-col h-full z-10">
-          
+      <div className="flex-1 flex overflow-hidden relative">
+        
+        {/* 2. SIDEBAR (Lista de Comitês) - Com lógica Mobile */}
+        <aside 
+          className={`
+            bg-background border-r border-border flex flex-col z-[60] transition-transform duration-300
+            ${isMobileListOpen ? "fixed inset-0 pt-0" : "hidden"} 
+            md:flex md:w-96 md:static md:h-full
+          `}
+        >
+          {/* Header da Sidebar Mobile (Botão Fechar) */}
+          {isMobileListOpen && (
+            <div className="md:hidden p-4 border-b border-border flex items-center justify-between bg-background/95 backdrop-blur sticky top-0 z-50">
+              <span className="font-bold text-lg">Lista de Comitês</span>
+              <Button variant="ghost" size="sm" onClick={() => setIsMobileListOpen(false)}>
+                <span className="mr-2">Fechar Mapa</span>
+                <ChevronDown className="h-6 w-6" />
+              </Button>
+            </div>
+          )}
+
+          {/* Conteúdo Fixo da Sidebar (Busca e Criar) */}
           <div className="p-6 pb-2 shrink-0">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -233,7 +248,8 @@ export default function MapaPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 pt-2">
+          {/* Lista Rolável */}
+          <div className="flex-1 overflow-y-auto p-6 pt-2 pb-24 md:pb-6">
             <div className="space-y-3">
               {filteredCommittees.map((committee) => (
                 <Card
@@ -241,7 +257,10 @@ export default function MapaPage() {
                   className={`border-border bg-card cursor-pointer transition-all hover:shadow-md ${
                     selectedCommittee?.id === committee.id ? "ring-2 ring-primary" : ""
                   }`}
-                  onClick={() => setSelectedCommittee(committee)}
+                  onClick={() => {
+                    setSelectedCommittee(committee)
+                    if (window.innerWidth < 768) setIsMobileListOpen(false)
+                  }}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
@@ -257,7 +276,6 @@ export default function MapaPage() {
                         </div>
                       </div>
 
-                      {/* --- CORREÇÃO 3: Botão Dinâmico (Verde ou Entrar) --- */}
                       {memberCommitteeIds.has(committee.id) ? (
                         <Button
                           size="sm"
@@ -281,7 +299,6 @@ export default function MapaPage() {
                           Entrar
                         </Button>
                       )}
-
                     </div>
                   </CardContent>
                 </Card>
@@ -296,12 +313,26 @@ export default function MapaPage() {
           </div>
         </aside>
 
+        {/* 3. ÁREA DO MAPA */}
         <main className="h-full flex-1 relative bg-muted/20">
           <InteractiveMap />
+
+          {/* 4. BOTÃO FLUTUANTE (Mobile) */}
+          {!isMobileListOpen && (
+            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 md:hidden z-[50]">
+              <Button 
+                onClick={() => setIsMobileListOpen(true)}
+                className="shadow-xl bg-background text-foreground border border-border hover:bg-muted rounded-full px-6 py-6 font-semibold"
+              >
+                <List className="h-5 w-5 mr-2" />
+                Ver Lista de Comitês
+              </Button>
+            </div>
+          )}
         </main>
       </div>
 
-      {/* --- CORREÇÃO 4: Adicionado o Modal ao final --- */}
+      {/* Modal de Confirmação de Entrada */}
       <Dialog open={showJoinModal} onOpenChange={setShowJoinModal}>
         <DialogContent>
           <DialogHeader>
