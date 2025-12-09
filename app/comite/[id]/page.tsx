@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, use } from "react"
+import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
 import { createClient } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -16,7 +17,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { TreePine, MapPin, Users, Calendar, MessageSquare, Edit, Plus, Clock, CheckCircle, XCircle } from "lucide-react"
+import {
+  TreePine,
+  MapPin,
+  Users,
+  Calendar,
+  MessageSquare,
+  Edit,
+  Plus,
+  Clock,
+  CheckCircle,
+  XCircle,
+} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -53,32 +65,28 @@ interface Member {
   email: string
 }
 
-interface UserData {
-  id: string
-  email: string
-  user_metadata: {
-    full_name: string
-  }
-}
+export default function ComitePage() {
+  const params = useParams()
+  const id = params.id as string
 
-export default function ComitePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
   const router = useRouter()
-  const [user, setUser] = useState<UserData | null>(null)
   const [activeTab, setActiveTab] = useState("sobre")
   const [committee, setCommittee] = useState<Committee | null>(null)
   const [events, setEvents] = useState<Event[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [isCreator, setIsCreator] = useState(false)
+  
+  // NOVO: Estado para saber se é membro
+  const [isMember, setIsMember] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [memberCommitteeIds, setMemberCommitteeIds] = useState<Set<string>>(new Set())
-  const [selectedCommittee, setSelectedCommittee] = useState<Committee | null>(null)
-  const [showJoinModal, setShowJoinModal] = useState(false)
 
   // Modals
   const [showEditModal, setShowEditModal] = useState(false)
   const [showCreateEventModal, setShowCreateEventModal] = useState(false)
+  // NOVO: Modal de entrar no comitê
+  const [showJoinModal, setShowJoinModal] = useState(false)
+  
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: "success" | "error"; message: string } | null>(null)
 
   // Edit form
@@ -102,7 +110,9 @@ export default function ComitePage({ params }: { params: Promise<{ id: string }>
   })
 
   useEffect(() => {
-    loadData()
+    if (id) {
+      loadData()
+    }
   }, [id])
 
   const loadData = async () => {
@@ -114,23 +124,6 @@ export default function ComitePage({ params }: { params: Promise<{ id: string }>
         data: { user },
       } = await supabase.auth.getUser()
       setCurrentUser(user)
-      setUser(user as unknown as UserData)
-
-      if (user) {
-        const { data: myMembership } = await supabase
-          .from("committee_members")
-          .select("id")
-          .eq("committee_id", id)
-          .eq("user_id", user.id) // Agora o TS sabe que user não é nulo aqui
-          .single()
-
-        // Se encontrar registro, atualiza o estado para mudar o botão
-        if (myMembership) {
-          setMemberCommitteeIds(new Set([id]))
-        } else {
-          setMemberCommitteeIds(new Set())
-        }
-      }
 
       // Fetch committee
       const { data: committeeData, error: committeeError } = await supabase
@@ -161,7 +154,6 @@ export default function ComitePage({ params }: { params: Promise<{ id: string }>
         .order("event_date", { ascending: true })
 
       if (eventsData) {
-        // Fetch attendees for each event
         const eventsWithAttendees = await Promise.all(
           eventsData.map(async (event) => {
             const { data: attendees } = await supabase
@@ -182,20 +174,28 @@ export default function ComitePage({ params }: { params: Promise<{ id: string }>
       }
 
       // Fetch members
-      const { data: memberIds } = await supabase.from("committee_members").select("user_id").eq("committee_id", id)
+      const { data: memberData } = await supabase.from("committee_members").select("user_id").eq("committee_id", id)
 
-      if (memberIds && memberIds.length > 0) {
+      if (memberData && memberData.length > 0) {
+        // NOVO: Verifica se o usuário atual está na lista de membros
+        if (user) {
+            const isUserInList = memberData.some((m) => m.user_id === user.id)
+            setIsMember(isUserInList)
+        }
+
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, full_name, email")
           .in(
             "id",
-            memberIds.map((m) => m.user_id),
+            memberData.map((m) => m.user_id),
           )
 
         if (profiles) {
           setMembers(profiles)
         }
+      } else {
+        setIsMember(false)
       }
 
       setLoading(false)
@@ -205,27 +205,29 @@ export default function ComitePage({ params }: { params: Promise<{ id: string }>
     }
   }
 
+  // NOVO: Função para entrar no comitê
   const handleJoinCommittee = async () => {
-    if (!user || !selectedCommittee) return
+    if (!currentUser || !committee) return
 
     try {
       const supabase = createClient()
 
       const { error } = await supabase
         .from("committee_members")
-        .insert([{ committee_id: selectedCommittee.id, user_id: user.id }])
+        .insert([{ committee_id: committee.id, user_id: currentUser.id }])
 
       if (error) throw error
 
       setShowJoinModal(false)
-      setSelectedCommittee(null)
-      setFeedbackMessage({ type: "success", message: `Você agora é membro do ${selectedCommittee.name}!` })
+      setIsMember(true) // Atualiza estado local imediatamente
+      
+      setFeedbackMessage({ type: "success", message: `Você agora é membro do ${committee.name}!` })
       setTimeout(() => setFeedbackMessage(null), 3000)
 
-      loadData()
+      loadData() // Recarrega para atualizar lista de membros
     } catch (error) {
       console.error("[v0] Erro ao entrar no comitê:", error)
-      setFeedbackMessage({ type: "error", message: "Erro ao entrar no comitê. Tente novamente." })
+      setFeedbackMessage({ type: "error", message: "Erro ao entrar no comitê." })
       setTimeout(() => setFeedbackMessage(null), 3000)
     }
   }
@@ -346,8 +348,9 @@ export default function ComitePage({ params }: { params: Promise<{ id: string }>
       {/* Feedback Toast */}
       {feedbackMessage && (
         <div
-          className={`fixed top-4 right-4 z-[100] flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${feedbackMessage.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
-            }`}
+          className={`fixed top-4 right-4 z-[100] flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${
+            feedbackMessage.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+          }`}
         >
           {feedbackMessage.type === "success" ? <CheckCircle className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
           <span>{feedbackMessage.message}</span>
@@ -416,7 +419,8 @@ export default function ComitePage({ params }: { params: Promise<{ id: string }>
             </div>
 
             <div className="flex gap-2">
-              {isCreator && (
+              {isCreator ? (
+                // BOTÕES DO CRIADOR
                 <>
                   <Button
                     variant="outline"
@@ -434,29 +438,26 @@ export default function ComitePage({ params }: { params: Promise<{ id: string }>
                     Criar Evento
                   </Button>
                 </>
-              )}
-              {memberCommitteeIds.has(committee.id) ? (
-                <Button
-                  size="sm"
-                  className="bg-green-600 text-white hover:bg-green-700 flex-shrink-0"
-                  disabled
-                >
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  Membro
-                </Button>
               ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-primary text-primary hover:bg-primary/10 bg-transparent flex-shrink-0"
-                  onClick={() => {
-                    setSelectedCommittee(committee)
-                    setShowJoinModal(true)
-                  }}
-                >
-                  <Users className="h-4 w-4 mr-1" />
-                  Ser Membro
-                </Button>
+                // BOTÕES DO USUÁRIO COMUM (AQUI ESTÁ A LÓGICA QUE VOCÊ PEDIU)
+                isMember ? (
+                  <Button 
+                    size="lg" 
+                    className="bg-green-600 text-white hover:bg-green-700 cursor-default"
+                  >
+                    <CheckCircle className="h-5 w-5 mr-2" />
+                    Você é Membro
+                  </Button>
+                ) : (
+                  <Button 
+                    size="lg" 
+                    onClick={() => setShowJoinModal(true)}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    Participar do Comitê
+                  </Button>
+                )
               )}
             </div>
           </div>
@@ -649,6 +650,7 @@ export default function ComitePage({ params }: { params: Promise<{ id: string }>
         </Tabs>
       </div>
 
+      {/* Modal: Editar Comitê */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -708,32 +710,7 @@ export default function ComitePage({ params }: { params: Promise<{ id: string }>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showJoinModal} onOpenChange={setShowJoinModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Entrar no Comitê</DialogTitle>
-            <DialogDescription>
-              Você deseja se tornar membro do comitê "{selectedCommittee?.name}"?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowJoinModal(false)
-                setSelectedCommittee(null)
-              }}
-              className="border-border bg-transparent"
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleJoinCommittee} className="bg-primary text-primary-foreground">
-              Confirmar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      {/* Modal: Criar Evento */}
       <Dialog open={showCreateEventModal} onOpenChange={setShowCreateEventModal}>
         <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -856,6 +833,30 @@ export default function ComitePage({ params }: { params: Promise<{ id: string }>
               className="bg-primary text-primary-foreground"
             >
               Criar Evento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* NOVO: Modal de Confirmar Entrada no Comitê */}
+      <Dialog open={showJoinModal} onOpenChange={setShowJoinModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Entrar no Comitê</DialogTitle>
+            <DialogDescription>
+              Você deseja se tornar membro oficial do comitê "{committee.name}"?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowJoinModal(false)}
+              className="border-border bg-transparent"
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleJoinCommittee} className="bg-primary text-primary-foreground">
+              Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>

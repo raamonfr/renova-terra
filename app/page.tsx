@@ -2,12 +2,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { TreePine, MapPin, Users, Award, Facebook, Instagram, Twitter, Mail } from "lucide-react"
 import Link from "next/link"
+import { InteractiveMap } from "@/components/interactive-map"
 
 export default function HomePage() {
   return (
     <div className="min-h-screen">
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-18 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TreePine className="h-8 w-8 text-primary" />
             <span className="text-2xl font-semibold text-foreground">RenovaTerra</span>
@@ -19,40 +20,41 @@ export default function HomePage() {
             >
               Como Funciona
             </a>
-            <Link href="/mapa" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+            <Link
+              href="/auth/login"
+              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+            >
               Mapa de Comitês
             </Link>
+            <Link href="/auth/login">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-primary text-primary hover:bg-primary/10 bg-transparent"
+              >
+                Login
+              </Button>
+            </Link>
+            <Link href="/auth/signup">
+              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                Cadastre-se
+              </Button>
+            </Link>
           </nav>
-          <div className="flex gap-6">
-              <Link href="/auth/login">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-primary text-primary hover:bg-primary/10 bg-transparent"
-                >
-                  Login
-                </Button>
-              </Link>
-              <Link href="/auth/signup">
-                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  Cadastre-se
-                </Button>
-              </Link>
-            </div>
         </div>
       </header>
 
       <section className="relative min-h-[600px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
-            src="/imgs/banner.jpg"
+            src="/community-planting-trees-together-in-urban-park--d.jpg"
             alt="Comunidade plantando árvores"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/60" />
         </div>
 
-        <div className="container mx-auto px-18 relative z-10">
+        <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-2xl">
             <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 text-balance leading-tight">
               Transforme seu bairro. Plante um futuro mais verde.
@@ -138,62 +140,7 @@ export default function HomePage() {
             <Card className="border-border bg-card overflow-hidden">
               <CardContent className="p-0">
                 <div className="relative h-[500px] bg-gradient-to-br from-primary/5 via-secondary/10 to-accent/5">
-                  <img
-                    src="/interactive-city-map-with-green-location-pins--urb.jpg"
-                    alt="Mapa de comitês"
-                    className="w-full h-full object-cover opacity-80"
-                  />
-
-                  {/* Pins de exemplo no mapa */}
-                  <div className="absolute top-1/4 left-1/3 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="relative group cursor-pointer">
-                      <div className="h-10 w-10 rounded-full bg-primary shadow-lg flex items-center justify-center animate-pulse">
-                        <TreePine className="h-6 w-6 text-primary-foreground" />
-                      </div>
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block">
-                        <div className="bg-card border border-border rounded-lg p-3 shadow-xl whitespace-nowrap">
-                          <p className="font-semibold text-card-foreground text-sm">Comitê Jardim Feliz</p>
-                          <p className="text-xs text-muted-foreground">42 membros</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="absolute top-1/2 left-2/3 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="relative group cursor-pointer">
-                      <div className="h-10 w-10 rounded-full bg-primary shadow-lg flex items-center justify-center animate-pulse delay-100">
-                        <TreePine className="h-6 w-6 text-primary-foreground" />
-                      </div>
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block">
-                        <div className="bg-card border border-border rounded-lg p-3 shadow-xl whitespace-nowrap">
-                          <p className="font-semibold text-card-foreground text-sm">Verde Centro</p>
-                          <p className="text-xs text-muted-foreground">68 membros</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="absolute bottom-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="relative group cursor-pointer">
-                      <div className="h-10 w-10 rounded-full bg-primary shadow-lg flex items-center justify-center animate-pulse delay-200">
-                        <TreePine className="h-6 w-6 text-primary-foreground" />
-                      </div>
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block">
-                        <div className="bg-card border border-border rounded-lg p-3 shadow-xl whitespace-nowrap">
-                          <p className="font-semibold text-card-foreground text-sm">Árvores do Sul</p>
-                          <p className="text-xs text-muted-foreground">35 membros</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-                    <Link href="/auth/login">
-                      <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl">
-                        Explorar Mapa Completo
-                      </Button>
-                    </Link>
-                  </div>
+                  <InteractiveMap isHomePage={true} />
                 </div>
               </CardContent>
             </Card>
@@ -275,7 +222,7 @@ export default function HomePage() {
       </section>
 
       <footer className="py-12 border-t border-border bg-secondary/20">
-        <div className="container px-18">
+        <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
@@ -322,17 +269,17 @@ export default function HomePage() {
                   </a>
                 </li>
                 <li>
-                  <Link href="/mapa" className="hover:text-primary transition-colors">
+                  <Link href="/auth/login" className="hover:text-primary transition-colors">
                     Mapa de Comitês
                   </Link>
                 </li>
                 <li>
-                  <Link href="/eventos" className="hover:text-primary transition-colors">
+                  <Link href="/auth/login" className="hover:text-primary transition-colors">
                     Eventos
                   </Link>
                 </li>
                 <li>
-                  <Link href="/recompensas" className="hover:text-primary transition-colors">
+                  <Link href="/auth/login" className="hover:text-primary transition-colors">
                     Recompensas
                   </Link>
                 </li>
