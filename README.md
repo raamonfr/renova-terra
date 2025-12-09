@@ -22,9 +22,11 @@ git clone https://github.com/raamonfr/renova-terra.git
 cd renova-terra
 ```
 
-**3. Instale as dependências. Isso vai baixar a pasta node_modules necessária para o projeto rodar:**
+**3. Instale as dependências. Isso vai baixar a pasta node_modules necessária para o projeto rodar e o mapa interativo de comitês:**
 ```bash
 npm install
+npm install leaflet
+npm install -D @types/leaflet
 ```
 
 **4. Configure as Variáveis de Ambiente O projeto precisa de chaves de acesso para conectar ao banco de dados (Supabase).**
